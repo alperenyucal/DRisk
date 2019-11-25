@@ -8,9 +8,9 @@ const port = 3000;
 
 app.use(cors());
 app.use("/static", express.static("dist"));
+app.use('/static', express.static(__dirname + '/node_modules/normalize.css/'));
 
-
-app.get("/", (req, res) => {
+app.get("/*", (req, res) => {
   res.sendFile(path.join(__dirname + "/index.html"));
 });
 
