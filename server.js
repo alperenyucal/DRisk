@@ -2,8 +2,17 @@ const express = require("express");
 const path = require("path");
 const cors = require("cors");
 
-
 const app = express();
+const server = require('http').Server(app);
+const io = require('socket.io')(server);
+
+io.on('connection', function (socket) {
+  socket.emit('news', { hello: 'world' });
+  socket.on('my other event', function (data) {
+    console.log(data);
+  });
+});
+
 const port = 3000;
 
 app.use(cors());

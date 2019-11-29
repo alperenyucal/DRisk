@@ -1,10 +1,14 @@
 import React from "react";
-import "./MapEditor.css"
+import Map from "../components/Map";
+import "./MapEditor.css";
 
 export default () => {
   return (
     <div>
-      <h1>Editor</h1>
+     
+        <Map id="editor-map" width="1200" height="600">
+
+        </Map>
     </div>
   )
 };

@@ -4,11 +4,8 @@ import "./pages/Home";
 import Home from "./pages/Home";
 import Game from "./pages/Game";
 import MapEditor from "./pages/MapEditor";
-import "@blueprintjs/core/lib/css/blueprint.css";
-import "normalize.css"
+import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
 
-
-import { BrowserRouter as Router, Route, Switch} from "react-router-dom";
 
 render((
   <Router>
