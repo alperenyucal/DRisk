@@ -1,6 +1,25 @@
-#editor-map{
-  display: block;
-  margin: 0 0 auto auto;
-  border: 1px solid black;
+#page {
+  height: 100vh;
+
+  display: flex;
+  flex-flow: column;
+}
+
+#container {
+  flex: 1 1 auto;
+  display: flex;
+}
+
+
+#menu {
+  flex-basis: 20%;
+  height: 100%;
+}
+
+#map-container {
+  flex-basis: 80%;
+  height: 100%;
   background-color: lightgray;
+  overflow: auto;
+
 }

@@ -5,7 +5,8 @@ import Home from "./pages/Home";
 import Game from "./pages/Game";
 import MapEditor from "./pages/MapEditor";
 import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
-
+import "normalize.css";
+import "@blueprintjs/core/lib/css/blueprint.css";
 
 render((
   <Router>
