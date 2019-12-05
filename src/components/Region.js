@@ -1,19 +1,40 @@
 import React from "react";
 
 // Nodes is a list of nodes of the region
-export default ({ nodes, fillColor }) => {
-  [{
-    x: 43,
-    y: 52
-  }, {
-
-  }]
-
+export default ({ nodes, lineColor, width, fillColor, soldiers, regionName }) => {
+  let path = "M";
+  let i = 1;
+  for (let node of nodes) {
+    path += node["x"];
+    path += " ";
+    path += node["y"];
+    if (nodes.length == i) path += " ";
+    else {
+      path += " L";
+    }
+    i++;
+  }
+  path += " Z";
+  let sum_x = 0;
+  let sum_y = 0;
+  for (let n of nodes) {
+    sum_x += n.x;
+    sum_y += n.y;
+  }
+  let residue_x = sum_x % nodes.length;
+  let residue_y = sum_y % nodes.length;
+  let middle_x = (sum_x - residue_x) / nodes.length;
+  let middle_y = (sum_y - residue_y) / nodes.length;
 
   return (
-    <path d="M150 0 L75 200 L225 200 Z" stroke="red" stroke-width="3" fill={fillColor} >
-
-    </path>
-  )
-
-}
+    <g >
+      <path d={path} stroke={lineColor} stroke-width={width} fill={fillColor}></path>
+        <text x={middle_x}  y={middle_y - 15} text-anchor="middle" style={{ font: "bold 30px sans-serif" }}>
+          {regionName}
+        </text>
+        <text x={middle_x} y={middle_y + 15} text-anchor="middle" style={{ font: "bold 30px sans-serif" }}>
+          {soldiers}
+        </text>      
+    </g>
+  );
+};
