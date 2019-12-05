@@ -13,6 +13,7 @@
 
 #menu {
   flex-basis: 20%;
+  
   height: 100%;
 }
 
@@ -22,4 +23,24 @@
   background-color: lightgray;
   overflow: auto;
 
+}
+
+#properties {
+  position: fixed;
+  flex-basis: 20%;
+  bottom : 0;
+}
+
+#title{
+  float : left;
+  margin-right: 1%;
+}
+
+#submitButton{
+  width: 10%;
+  flex-basis:90%;
+}
+
+#dialog{
+  padding:10%;
 }

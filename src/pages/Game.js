@@ -13,11 +13,11 @@ export default () => {
   socket.on("connect",()=>{console.log("connect")})
 
 
-
+let list = [{x:150,y:0},{x:75,y:100},{x:225,y:100}]
   return (
     <div>
       <Map id="map" width="1200" height="600">
-        <Region fillColor="red"></Region>
+        <Region nodes = {list} fillColor="red" regionName = "trolololo" lineColor = "black" soldiers = {2} width = {3}></Region>
       </Map>
     </div>
   )
