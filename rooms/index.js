@@ -16,7 +16,7 @@ module.exports = (server) => {
     })
 
     socket.on("create room", ({ roomname, username }) => {
-      if (!rooms.map(room => room.name).includes(roomname)) {
+      if (!rooms.map(room => room.name).includes(roomname) && username != null) {
         let room = new Room(roomname);
         room.addUser(username);
         rooms.push(room);
@@ -29,7 +29,7 @@ module.exports = (server) => {
     socket.on("join room", ({ roomname, username }) => {
       let exists = false;
       rooms.map((room) => {
-        if (room.name == roomname) {
+        if (room.name == roomname && username != null && !room.users.includes("username")) {
           socket.join(roomname);
           room.addUser(username);
           exists = true;
@@ -40,7 +40,16 @@ module.exports = (server) => {
     })
 
     socket.on("leave room", ({ roomname, username }) => {
+      rooms.map((room, i) => {
+        if (room.name == roomname)
+          room.removeUser(username);
+        if (room.users.length == 0) {
+          rooms.splice(i, 1);
+        }
+      });
       socket.leave(roomname);
+      console.log(rooms);
+
     })
 
     socket.on("get rooms", () => {
@@ -58,7 +67,6 @@ module.exports = (server) => {
 
 class Room {
   constructor(name) {
-    this
     this.name = name;
     this.users = [];
   };
