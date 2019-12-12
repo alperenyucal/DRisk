@@ -6,10 +6,10 @@ const app = express();
 const server = require('http').Server(app);
 const port = 3000;
 
-const io = require("./services/io");
+const rooms = require("./rooms");
 
 
-io.listen(server);
+rooms(server);
 
 app.use(cors());
 app.use("/static", express.static("dist"));

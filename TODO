@@ -1,0 +1,7 @@
+users should remember their usernames and roomnames
+if a join request has a username that already exists in the room. do not join.
+add maxusers to the room class
+room name should be unique or rooms should have ids
+leave room event should delete user from users list.
+
+
