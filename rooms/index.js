@@ -16,7 +16,7 @@ module.exports = (server) => {
     })
 
     socket.on("create room", ({ roomname, username }) => {
-      if (!rooms.map(room => room.name).includes(roomname) && username != null) {
+      if (!rooms.map(room => room.name).includes(roomname) && username != null && roomname != null) {
         let room = new Room(roomname);
         room.addUser(username);
         rooms.push(room);
