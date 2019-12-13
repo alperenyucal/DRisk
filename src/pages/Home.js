@@ -5,35 +5,27 @@ const io = require('socket.io-client');
 const socket = io();
 
 
-export default ({ mapdata, }) => {
+export default ({ }) => {
 
   let [usernameDialogIsOpen, setUsernameDialogIsOpen] = useState(true);
   let [settingIsOpen, setSettingIsOpen] = useState(false);
   let [usernameIsSubmit, setUsernameIsSubmit] = useState(false);
   let [input, setInput] = useState(null);
   let [room, setRoom] = useState(null);
-  let [messages, setMessages] = useState([]);
   let [username, setUsername] = useState(null);
   let [rooms, setRooms] = useState([]);
 
-  let validateUsername = (username) => {
-    if (username == ""  || username == null || username[0] == " " || !username.match(/^[a-zA-Z0-9]+$/)) {
-      //alert("Please Enter Your Name");
-      //document.form.name.focus();
+  let validateName = (username) => {
+    if (username == "" || username == null || username[0] == " " || !username.match(/^[a-zA-Z0-9]+$/)) {
       return false;
     }
     if ((username.length < 2) || (username.length > 15)) {
-      //alert("Your Character must be 5 to 15 Character");
-      //document.form.name.select();
       return false;
 
     }
     return true;
   }
 
-  socket.on("message", message => {
-    console.log("message-sent " + message);
-  })
 
   useEffect(() => {
 
@@ -41,12 +33,8 @@ export default ({ mapdata, }) => {
 
     try {
       socket.open();
-      socket.on("refresh rooms", (rooms) => {
-        setRooms(rooms);
-      })
-      socket.on('message', (message) => {
-        setMessages(messages => [...messages, message]);
-      })
+      socket.on("refresh rooms", (rooms) => { setRooms(rooms) })
+      socket.on('message', (message) => { setMessages(messages => [...messages, message]) })
     } catch (error) {
       console.log(error);
     }
@@ -57,24 +45,23 @@ export default ({ mapdata, }) => {
   }, []);
 
 
-  let a = <Callout intent="warning">Please enter a valid username.</Callout>
-
+  let a = (name) => <Callout intent="warning">Please enter a valid {name}</Callout>
   return (
     <div>
-      {/* Dialog Box to get username*/}
+      {/* Dialog Box to get username */}
       <Dialog isOpen={usernameDialogIsOpen} canEscapeKeyClose={false}>
-        {(!validateUsername(username) && usernameIsSubmit)? a : null}
+        {(!validateName(username) && usernameIsSubmit) ? a("username") : null}
         <FormGroup
           style={{ margin: "10px 40px 0 40px" }}
         >
           Select a username:
           <InputGroup
-            onChange={(e) => { setUsername(e.target.value) }} />
+            onChange={(e) => { setUsername(e.target.value )}} />
           <br />
           <Button
             onClick={() => {
               setUsernameIsSubmit(true);
-              if(validateUsername(username)) {
+              if(validateName(username)) {
                 localStorage.setItem("username", username);
                 setUsernameDialogIsOpen(false);
               }
@@ -82,28 +69,44 @@ export default ({ mapdata, }) => {
         </FormGroup>
       </Dialog>
 
-      <Dialog isOpen={settingIsOpen} canOutsideClickClose = "true" canEscapeKeyClose = "true" >
-        {(!validateUsername(username) && usernameIsSubmit)? a : null}
+      {/* Dialog to create room
+      <Dialog isOpen={settingIsOpen} canOutsideClickClose canEscapeKeyClose>
+        {(!validateName(room.name) && usernameIsSubmit) ? a("room name") : null}
         <FormGroup
           style={{ margin: "10px 40px 0 40px" }}
         >
           Choose Room Settings:
           <InputGroup
             onChange={(e) => { setUsername(e.target.value) }} />
+          <InputGroup
+            onChange={(e) => { p1 = e.target.value }} />
+          <InputGroup
+            onChange={(e) => { p2 = e.target.value }} />
           <br />
           <Button
             onClick={() => {
               setUsernameIsSubmit(true);
-              if(validateUsername(username)) {
-                localStorage.setItem("username", username);
-                setSettingIsOpen(false);
-              }
+              localStorage.setItem("username", username);
+              setSettingIsOpen(false);
             }}>Submit</Button>
+          <br />
+          Choose maximum player
+          <select fill>
+            <option selected>6</option>
+            <option value="1">2</option>
+            <option value="2">3</option>
+            <option value="3">4</option>
+            <option value="4">5</option>
+            <option value="5">6</option>
+          </select>
+          <br /> <br />
+          <input type="password" placeholder="Enter your password..." />
+          
         </FormGroup>
-      </Dialog>
-      
+      </Dialog>*/}
+
       <h1>DRISK</h1>
-      
+
       <HTMLTable interactive="true" striped="true" bordered="true">
 
         <thead>
@@ -129,7 +132,7 @@ export default ({ mapdata, }) => {
       <br /><br />
       <button onClick={() => { socket.emit("get rooms") }}>get rooms</button>
       <br /><br />
-      Join Room: <input onChange={(e) => { setRoom(e.target.value) }} />
+      Room: <input onChange={(e) => { setRoom(e.target.value) }} />
       <button onClick={() => {
         socket.emit("create room", { roomname: room, username: username });
       }}>Create</button>
@@ -139,15 +142,6 @@ export default ({ mapdata, }) => {
       <button onClick={() => {
         socket.emit("leave room", { roomname: room, username: username });
       }}>Leave</button>
-      <br />
-      <br />
-
-      Message: <input onChange={(e) => { setInput(e.target.value) }} />
-      <button onClick={() => {
-        socket.emit("message", { message: input, room: room });
-      }}>Send</button>
-      {messages.map((msg) => <div><h1>datetime.datetime.now()</h1>{msg}</div>)}
-
     </div>
   )
 }

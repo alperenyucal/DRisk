@@ -43,10 +43,11 @@ module.exports = (server) => {
 
     socket.on("leave room", ({ roomname, username }) => {
       rooms.map((room, i) => {
-        if (room.name == roomname)
+        if (room.name == roomname && room.users.includes(username)) {
           room.removeUser(username);
-        if (room.users.length == 0) {
-          rooms.splice(i, 1);
+          if (room.users.length == 0) {
+            rooms.splice(i, 1);
+          }
         }
       });
       socket.leave(roomname);
