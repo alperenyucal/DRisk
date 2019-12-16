@@ -15,11 +15,12 @@ module.exports = (server) => {
       io.to(room).emit('message', message);
     })
 
-    socket.on("create room", ({ roomname, username, maxUsers }) => {
+    socket.on("create room", ({ roomname, username, maxUsers, password}) => {
       if (!rooms.map(room => room.name).includes(roomname) && username != null && roomname != null) {
         let room = new Room(roomname);
         room.addUser(username);
-        room.maxUsers = maxUsers;
+        room.maxUsers = maxUsers || room.maxUsers;
+        room.password = password || room.password;
         rooms.push(room);
         socket.join(roomname);
       }
@@ -31,7 +32,7 @@ module.exports = (server) => {
       let exists = false;
       rooms.map((room) => {
         if (room.name == roomname && username != null &&
-           !room.users.includes("username") && room.maxUsers > room.users.length) {
+          !room.users.includes("username") && room.maxUsers > room.users.length) {
           socket.join(roomname);
           room.addUser(username);
           exists = true;
@@ -59,7 +60,9 @@ module.exports = (server) => {
       socket.emit("refresh rooms", rooms.map(room => {
         return {
           name: room.name,
-          userCount: room.users.length
+          userCount: room.users.length,
+          maxUsers: room.maxUsers,
+          hasPassword: room.password != null
         }
       }));
     })
@@ -69,7 +72,7 @@ module.exports = (server) => {
 
 
 class Room {
-  constructor(name, maxUsers, password = null) {
+  constructor(name, maxUsers = 6, password = null) {
     this.name = name;
     this.users = [];
     this.maxUsers = maxUsers;
