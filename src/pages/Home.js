@@ -149,13 +149,13 @@ export default ({ io, socket }) => {
           <form onSubmit={e => {
             e.preventDefault();
             let pass = e.target[0].value;
-
-            socket.emit("join room", { roomname: "r", password: pass });
+            
+            socket.emit("join room", { roomname: selectedRoom, password: (pass == "") ? null : pass });
             setRoomRedirect(true);
 
           }}>
-            <h4>Room Name: <span style={{color: "gray"}}>{selectedRoom}</span></h4>
-            
+            <h4>Room Name: <span style={{ color: "gray" }}>{selectedRoom}</span></h4>
+
             <h4>Password:</h4>
             <InputGroup type="password" />
             <br />
@@ -194,8 +194,6 @@ export default ({ io, socket }) => {
             ))}
           </div>
         </div>
-
-
 
       </Card>
 
