@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, InputGroup, FormGroup, Button, Callout, Card } from "@blueprintjs/core";
+import Game from "./Game";
 import "./Home.css";
-
 
 export default ({ io, socket }) => {
 
@@ -13,10 +13,17 @@ export default ({ io, socket }) => {
   // Room variables
   let [selectedRoom, setSelectedRoom] = useState(null);
   let [rooms, setRooms] = useState([]);
+  let [room, setRoom] = useState({
+    maxUsers: 6,
+    userCount: 0
+  });
   let [roomRedirect, setRoomRedirect] = useState(false);
   let [roomDialogIsOpen, setRoomDialogIsOpen] = useState(false);
   let [joinDialogIsOpen, setJoinDialogIsOpen] = useState(false);
+  let [waitingDialogIsOpen, setWaitingDialogIsOpen] = useState(false);
 
+
+  let map = "default map goes here";
   // Checks if the given username is valid
   let validateName = (usr) => !(
     usr == "" ||
@@ -35,6 +42,8 @@ export default ({ io, socket }) => {
     try {
       socket.open();
       socket.on("refresh rooms", (rooms) => { setRooms(rooms), console.log(rooms) })
+      socket.on("load game", () => { setRoomRedirect(true) });
+      socket.on("room", room => { setRoom(room) });
     }
     catch (error) {
       console.log(error);
@@ -46,7 +55,7 @@ export default ({ io, socket }) => {
   }, []);
 
 
-  return (
+  return roomRedirect ? <Game map={map} socket={socket} /> : (
     <div id="main-container">
       {/* Dialog Box to get username */}
       <Dialog
@@ -67,6 +76,7 @@ export default ({ io, socket }) => {
               localStorage.setItem("username", input);
               setUsernameDialogIsOpen(false);
               setshowUsernameError(false);
+              socket.emit("set username", input);
             }
           }}>
             <InputGroup autoFocus defaultValue={username} />
@@ -110,7 +120,9 @@ export default ({ io, socket }) => {
               rm.length > 15
             )) {
               socket.emit("create room", { roomname: rm, password: pass, maxUsers: maxUsers });
-              setRoomRedirect(true);
+              socket.emit("get rooms");
+              setRoomDialogIsOpen(false);
+              setWaitingDialogIsOpen(true);
             }
           }}>
             <h4>Room Name:</h4>
@@ -149,9 +161,10 @@ export default ({ io, socket }) => {
           <form onSubmit={e => {
             e.preventDefault();
             let pass = e.target[0].value;
-            
+
             socket.emit("join room", { roomname: selectedRoom, password: (pass == "") ? null : pass });
-            setRoomRedirect(true);
+            setJoinDialogIsOpen(false);
+            setWaitingDialogIsOpen(true);
 
           }}>
             <h4>Room Name: <span style={{ color: "gray" }}>{selectedRoom}</span></h4>
@@ -162,6 +175,15 @@ export default ({ io, socket }) => {
             <Button type="submit">Submit</Button>
           </form>
         </FormGroup>
+      </Dialog>
+
+      <Dialog
+        className="bp3-dark"
+        isOpen={waitingDialogIsOpen}
+        style={{ padding: "20px" }}
+      >
+        Waiting for other players...<br />
+        users: {room.userCount} / {room.maxUsers}
       </Dialog>
 
       <h1 style={{ flex: 1 }}>DRISK</h1>

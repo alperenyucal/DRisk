@@ -17,7 +17,7 @@ module.exports = (server) => {
   let users = [];
 
   // finds the user index using socketId.
-  let getUserIndex = (socketId) => users.findIndex(user=> user.socketId == socketId)
+  let getUserIndex = (socketId) => users.findIndex(user => user.socketId == socketId)
 
 
   // Room class
@@ -30,10 +30,21 @@ module.exports = (server) => {
     };
 
     // list of sockets connected to room.
-    getUsers = () => this.io.sockets.adapter.rooms[this.name];
+    getUsers = () =>
+      this.io.sockets.adapter.rooms[this.name] == undefined ? null :
+        Object.keys(this.io.sockets.adapter.rooms[this.name].sockets).map(scktid => users[getUserIndex(scktid)]);
 
     // count of users connected to room.
     getUserCount = () => this.getUsers() == null ? 0 : this.getUsers().length;
+
+    getRoomDetails = () => {
+      return {
+        name: this.name,
+        maxUsers: this.maxUsers,
+        userCount: this.getUserCount(),
+        users: this.getUsers()
+      }
+    };
 
   }
 
@@ -70,6 +81,7 @@ module.exports = (server) => {
         room.password = password || room.password;
         rooms.push(room);
         socket.join(roomname);
+        io.to(room.name).emit("room", room.getRoomDetails());
       }
       else console.error("room exists");
     })
@@ -80,6 +92,9 @@ module.exports = (server) => {
       rooms.map((room) => {
         if (room.name == roomname && room.maxUsers > room.getUserCount() && password == room.password) {
           socket.join(roomname);
+          if (room.maxUsers == room.getUserCount())
+            io.to(room.name).emit("load game", { users: room.getUsers() });
+          io.to(room.name).emit("room", room.getRoomDetails());
           exists = true;
         }
       })
@@ -89,12 +104,13 @@ module.exports = (server) => {
     // disconnects user from room.
     socket.on("leave room", ({ roomname }) => {
       socket.leave(roomname);
+      let room = rooms.find(rm => rm.name == roomname);
+      io.to(room.name).emit("room", room.getRoomDetails());
       checkRooms();
     })
 
     // returns a list of rooms
     socket.on("get rooms", () => {
-      console.log(users);
       socket.emit("refresh rooms", rooms.map(room => {
         return {
           name: room.name,
@@ -104,5 +120,6 @@ module.exports = (server) => {
         }
       }));
     })
+
   });
 }

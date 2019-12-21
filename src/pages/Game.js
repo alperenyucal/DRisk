@@ -4,7 +4,7 @@ import Region from "../components/Region";
 import "./Game.css"
 
 
-export default () => {
+export default ({map}) => {
 
 
 
