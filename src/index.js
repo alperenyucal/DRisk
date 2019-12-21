@@ -19,7 +19,6 @@ render((
       <Route exact path="/" render={(props)=><Home {...props} io={io} socket={socket} />} />
       <Route exact path="/game" component={Game} />
       <Route exact path="/mapeditor" component={MapEditor} />
-      <Route exact path="/maptest" component={MapTest} />
       <Route exact path="/chatdemo" render={(props)=><ChatDemo {...props} io={io} socket={socket} />} />
       <Route exact path="*">404</Route>
     </Switch>

@@ -4,15 +4,14 @@ import Region from "../components/Region";
 import "./Game.css"
 
 
-export default ({map}) => {
+export default ({ socket, map }) => {
 
-
-
-  let list = [{ x: 150, y: 0 }, { x: 75, y: 100 }, { x: 225, y: 100 }]
+  console.log(map);
   return (
     <div>
       <Map id="map" width="1200" height="600">
-        <Region nodes={list} fillColor="red" regionName="trolololo" lineColor="black" soldiers={2} width={3}></Region>
+        {map.regions.map(region =>
+          <Region key={region.id} lineColor="black" width="2" fillColor="gray" regionName={region.name} nodes={region.nodes} />)}
       </Map>
     </div>
   )

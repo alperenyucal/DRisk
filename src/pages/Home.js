@@ -22,8 +22,8 @@ export default ({ io, socket }) => {
   let [joinDialogIsOpen, setJoinDialogIsOpen] = useState(false);
   let [waitingDialogIsOpen, setWaitingDialogIsOpen] = useState(false);
 
+  let [map, setMap] = useState(null);
 
-  let map = "default map goes here";
   // Checks if the given username is valid
   let validateName = (usr) => !(
     usr == "" ||
@@ -37,16 +37,29 @@ export default ({ io, socket }) => {
   // Runs on component re-render (on load)
   useEffect(() => {
 
+    fetch("/static/map.json")
+      .then(res => res.json())
+      .then(data => {
+        data.regions = data.regions.map((region) => {
+          return {
+            id: region.id,
+            name: region.name,
+            nodes: region.nodes.map((node) => { return { x: (node.x * 40), y: (node.y * 30) } })
+          }
+        })
+        setMap(data);
+      });
+
     socket.emit("get rooms");
 
     try {
       socket.open();
-      socket.on("refresh rooms", (rooms) => { setRooms(rooms), console.log(rooms) })
+      socket.on("refresh rooms", (rooms) => { setRooms(rooms) })
       socket.on("load game", () => { setRoomRedirect(true) });
       socket.on("room", room => { setRoom(room) });
     }
     catch (error) {
-      console.log(error);
+      console.error(error);
     }
     return () => {
       socket.close();
