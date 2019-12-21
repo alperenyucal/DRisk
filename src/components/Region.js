@@ -29,10 +29,10 @@ export default ({ nodes, lineColor, width, fillColor, soldiers, regionName }) =>
   return (
     <g>
       <path d={path} stroke={lineColor} strokeWidth={width} fill={fillColor}></path>
-        <text x={middle_x}  y={middle_y - 10} textAnchor="middle" style={{ font: "bold 20px sans-serif" }}>
+        <text x={middle_x}  y={middle_y - 10} textAnchor="middle" style={{ font: "bold 15px sans-serif" }}>
           {regionName}
         </text>
-        <text x={middle_x} y={middle_y + 10} textAnchor="middle" style={{ font: "bold 20px sans-serif" }}>
+        <text x={middle_x} y={middle_y + 10} textAnchor="middle" style={{ font: "bold 15px sans-serif" }}>
           {soldiers}
         </text>      
     </g>
