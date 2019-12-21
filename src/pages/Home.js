@@ -45,7 +45,9 @@ export default ({ io, socket }) => {
         return {
           id: region.id,
           name: region.name,
-          nodes: region.nodes.map((node) => { return { x: (node.x * 40), y: (node.y * 30) } })
+          nodes: region.nodes.map((node) => { return { x: (node.x * 40), y: (node.y * 30) } }),
+          neighbours: region.neighbours,
+          continentId: region.continentId
         }
       })
       setMap(data);
@@ -135,8 +137,8 @@ export default ({ io, socket }) => {
               rm.length < 2 ||
               rm.length > 15 ||
               maxUsers.length > 1 ||
-              maxUsers[0] < 2 ||
-              maxUsers[0] > 6
+              maxUsers < 2 ||
+              maxUsers > 6
             ) {
               setCreateRoomError(true);
             }

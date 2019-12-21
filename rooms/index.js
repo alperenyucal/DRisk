@@ -121,5 +121,8 @@ module.exports = (server) => {
       }));
     })
 
+    socket.on("get room details", (roomname)=>{
+
+    })
   });
 }
