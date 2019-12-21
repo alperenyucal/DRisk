@@ -2,91 +2,76 @@ module.exports = (server) => {
 
   const io = require('socket.io')(server);
   let rooms = [];
+  let users = [];
+  let checkRooms = () => {
+    rooms.map((room, i) => {
+      if (room.getUserCount() == 0)
+        rooms.splice(i, 1)
+    })
+  }
 
   io.on('connection', socket => {
-    console.log('a user connected');
-    console.log(socket.id);
+    //console.log('a user connected');
 
     socket.on('disconnect', () => {
-      console.log('user disconnected');
+      checkRooms();
     });
 
     socket.on("message", ({ message, room }) => {
       io.to(room).emit('message', message);
     })
 
-    socket.on("create room", ({ roomname, username, maxUsers, password}) => {
-      if (!rooms.map(room => room.name).includes(roomname) && username != null && roomname != null) {
-        let room = new Room(roomname);
-        room.addUser(username);
+    socket.on("create room", ({ roomname, maxUsers, password }) => {
+      if (!rooms.map(room => room.name).includes(roomname) && roomname != null) {
+        let room = new Room(io, roomname);
         room.maxUsers = maxUsers || room.maxUsers;
         room.password = password || room.password;
         rooms.push(room);
         socket.join(roomname);
       }
       else console.error("room exists");
-      console.log(rooms);
     })
 
-    socket.on("join room", ({ roomname, username }) => {
+    socket.on("join room", ({ roomname, password }) => {
       let exists = false;
       rooms.map((room) => {
-        if (room.name == roomname && username != null &&
-          !room.users.includes("username") && room.maxUsers > room.users.length) {
+        if (room.name == roomname && room.maxUsers > room.getUserCount() && password == room.password) {
           socket.join(roomname);
-          room.addUser(username);
           exists = true;
         }
       })
       if (!exists) console.error("room doesn't exist");
-      console.log(rooms);
     })
 
-    socket.on("leave room", ({ roomname, username }) => {
-      rooms.map((room, i) => {
-        if (room.name == roomname && room.users.includes(username)) {
-          room.removeUser(username);
-          if (room.users.length == 0) {
-            rooms.splice(i, 1);
-          }
-        }
-      });
+    socket.on("leave room", ({ roomname }) => {
       socket.leave(roomname);
-      console.log(rooms);
-
+      checkRooms();
     })
 
     socket.on("get rooms", () => {
       socket.emit("refresh rooms", rooms.map(room => {
         return {
           name: room.name,
-          userCount: room.users.length,
+          userCount: room.getUserCount(),
           maxUsers: room.maxUsers,
           hasPassword: room.password != null
         }
       }));
     })
   });
-
 }
 
 
 class Room {
-  constructor(name, maxUsers = 6, password = null) {
+  constructor(io, name, maxUsers = 6, password = null) {
     this.name = name;
-    this.users = [];
     this.maxUsers = maxUsers;
     this.password = password;
+    this.io = io;
   };
 
-  addUser(username) {
-    if (!this.users.includes(username))
-      this.users.push(username);
-  }
-
-  removeUser(username) {
-    let i = this.users.indexOf(username);
-    this.users.splice(i, 1);
-  }
+  getUsers = () => this.io.sockets.adapter.rooms[this.name];
+  getUserCount = () => this.getUsers() == undefined ? 0 : this.getUsers().length;
 
 }
+

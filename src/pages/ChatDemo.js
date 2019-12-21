@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from "react";
 
-const io = require('socket.io-client');
-const socket = io();
 
 
-export default () => {
+export default ({io , socket}) => {
 
   let [messages, setMessages] = useState([]);
   let [username, setUsername] = useState(null);

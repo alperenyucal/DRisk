@@ -35,6 +35,12 @@
   background-color: #313d46;
 }
 
+.selected {
+  background-color: blue;
+  display: flex;
+  flex-direction: row;
+}
+
 
 .flex-col {
   padding: 5px;
