@@ -6,7 +6,7 @@ import "./Game.css"
 
 export default ({ socket, map }) => {
 
-  console.log(map);
+  
   return (
     <div>
       <Map id="map" width="1200" height="600">
