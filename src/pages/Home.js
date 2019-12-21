@@ -21,9 +21,10 @@ export default ({ io, socket }) => {
   let [roomDialogIsOpen, setRoomDialogIsOpen] = useState(false);
   let [joinDialogIsOpen, setJoinDialogIsOpen] = useState(false);
   let [waitingDialogIsOpen, setWaitingDialogIsOpen] = useState(false);
+  let [showCreateRoomError, setCreateRoomError] = useState(false);
 
-  let [map, setMap] = useState(null);
 
+  let map = "default map goes here";
   // Checks if the given username is valid
   let validateName = (usr) => !(
     usr == "" ||
@@ -37,29 +38,16 @@ export default ({ io, socket }) => {
   // Runs on component re-render (on load)
   useEffect(() => {
 
-    fetch("/static/map.json")
-      .then(res => res.json())
-      .then(data => {
-        data.regions = data.regions.map((region) => {
-          return {
-            id: region.id,
-            name: region.name,
-            nodes: region.nodes.map((node) => { return { x: (node.x * 40), y: (node.y * 30) } })
-          }
-        })
-        setMap(data);
-      });
-
     socket.emit("get rooms");
 
     try {
       socket.open();
-      socket.on("refresh rooms", (rooms) => { setRooms(rooms) })
+      socket.on("refresh rooms", (rooms) => { setRooms(rooms), console.log(rooms) })
       socket.on("load game", () => { setRoomRedirect(true) });
       socket.on("room", room => { setRoom(room) });
     }
     catch (error) {
-      console.error(error);
+      console.log(error);
     }
     return () => {
       socket.close();
@@ -107,6 +95,7 @@ export default ({ io, socket }) => {
           setRoomDialogIsOpen(false);
         }}
         className="bp3-dark">
+        {showCreateRoomError ? <Callout intent="warning">Please enter a valid Room Name and Max Players (2 to 6)</Callout> : null}
         <FormGroup
           style={{ margin: "10px 40px 0 40px" }}
         >
@@ -117,25 +106,33 @@ export default ({ io, socket }) => {
               onClick={() => { setRoomDialogIsOpen(false) }}
               style={{ float: "right" }}
             >
-              x
+              X
             </Button>
           </h3>
+          <hr></hr>
           <form onSubmit={e => {
             e.preventDefault();
             let rm = e.target[0].value;
             let maxUsers = e.target[1].value;
             let pass = e.target[2].value;
-            if (!(
+            if (
               rm == "" ||
               rm == null ||
               !rm.match(/^[a-zA-Z0-9]+$/) || // !!! add space
               rm.length < 2 ||
-              rm.length > 15
-            )) {
+              rm.length > 15 ||
+              maxUsers.length > 1 ||
+              maxUsers[0] < 2 ||
+              maxUsers[0] > 6
+            ) {
+              setCreateRoomError(true);
+            }
+            else {
               socket.emit("create room", { roomname: rm, password: pass, maxUsers: maxUsers });
               socket.emit("get rooms");
               setRoomDialogIsOpen(false);
               setWaitingDialogIsOpen(true);
+              setCreateRoomError(false);
             }
           }}>
             <h4>Room Name:</h4>
@@ -168,7 +165,7 @@ export default ({ io, socket }) => {
               onClick={() => { setJoinDialogIsOpen(false) }}
               style={{ float: "right" }}
             >
-              x
+              X
             </Button>
           </h3>
           <form onSubmit={e => {
