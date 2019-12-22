@@ -57,21 +57,18 @@ export default ({ io, socket }) => {
 
     try {
       socket.open();
-      socket.on("refresh rooms", (rooms) => { setRooms(rooms) })
+      socket.on("refresh rooms", rooms => { setRooms(rooms) })
       socket.on("load game", () => { setRoomRedirect(true) });
-      socket.on("room", room => { setRoom(room) });
+      socket.on("room", room => { setRoom(room); console.log(room)});
     }
     catch (error) {
       console.error(error);
     }
-    return () => {
-      socket.close();
-    };
 
   }, []);
 
 
-  return roomRedirect ? <Game map={map} socket={socket} /> : (
+  return roomRedirect ? <Game room={room} map={map} socket={socket} /> : (
     <div id="main-container">
       {/* Dialog Box to get username */}
       <Dialog
@@ -144,6 +141,7 @@ export default ({ io, socket }) => {
             }
             else {
               socket.emit("create room", { roomname: rm, password: pass, maxUsers: maxUsers });
+              setRoom=
               socket.emit("get rooms");
               setRoomDialogIsOpen(false);
               setWaitingDialogIsOpen(true);

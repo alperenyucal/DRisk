@@ -92,9 +92,9 @@ module.exports = (server) => {
       rooms.map((room) => {
         if (room.name == roomname && room.maxUsers > room.getUserCount() && password == room.password) {
           socket.join(roomname);
-          if (room.maxUsers == room.getUserCount())
-            io.to(room.name).emit("load game", { users: room.getUsers() });
           io.to(room.name).emit("room", room.getRoomDetails());
+          if (room.maxUsers == room.getUserCount())
+            io.to(room.name).emit("load game");
           exists = true;
         }
       })
@@ -121,8 +121,38 @@ module.exports = (server) => {
       }));
     })
 
-    socket.on("get room details", (roomname)=>{
-
+    socket.on("who am i", () => {
+      socket.emit("you are", users[getUserIndex(socket.id)]);
     })
+
+    // Game methods
+
+    socket.on("set regions", ({ roomname, regions }) => {
+      io.to(roomname).emit("set regions", regions);
+    })
+
+    socket.on("set started", ({ roomname, isStarted }) => {
+      console.log("lol");
+      console.log(io.sockets.adapter.rooms);
+      io.to(roomname).emit("set started", isStarted);
+    })
+
+    socket.on("set finished", ({ roomname, isFinished }) => {
+      io.to(roomname).emit("set finished", isFinished);
+    })
+
+    socket.on("set turn", ({ roomname, turn }) => {
+      io.to(roomname).emit("set turn", turn);
+    })
+
+    socket.on("set continents", ({ roomname, continents }) => {
+      io.to(roomname).emit("set continents", continents);
+    })
+
+    socket.on("set users", ({ roomname, users }) => {
+      io.to(roomname).emit("set users", users);
+    })
+
+
   });
 }

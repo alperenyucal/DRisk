@@ -1,8 +1,8 @@
 import React from "react";
 
 // Nodes is a list of nodes of the region
-export default ({ nodes, lineColor, width, fillColor, soldiers, regionName }) => {
-  
+export default ({ nodes, lineColor, width, fillColor, soldiers, regionName, textColor }) => {
+
   let path = "M";
   let i = 1;
   for (let node of nodes) {
@@ -29,12 +29,12 @@ export default ({ nodes, lineColor, width, fillColor, soldiers, regionName }) =>
   return (
     <g>
       <path d={path} stroke={lineColor} strokeWidth={width} fill={fillColor}></path>
-        <text x={middle_x}  y={middle_y - 10} textAnchor="middle" style={{ font: "bold 15px sans-serif" }}>
-          {regionName}
-        </text>
-        <text x={middle_x} y={middle_y + 10} textAnchor="middle" style={{ font: "bold 15px sans-serif" }}>
-          {soldiers}
-        </text>      
+      <text x={middle_x} y={middle_y - 10} textAnchor="middle" style={{ font: "bold 15px sans-serif" }}>
+        {regionName}
+      </text>
+      <text x={middle_x} y={middle_y + 10} stroke="black" strokeWidth={1} fill={textColor} textAnchor="middle" style={{ font: "bold 25px sans-serif" }}>
+        {soldiers}
+      </text>
     </g>
   );
 };
