@@ -39,19 +39,8 @@ export default ({ io, socket }) => {
   useEffect(() => {
 
     fetch("/static/map.json")
-    .then(res => res.json())
-    .then(data => {
-      data.regions = data.regions.map((region) => {
-        return {
-          id: region.id,
-          name: region.name,
-          nodes: region.nodes.map((node) => { return { x: (node.x * 40), y: (node.y * 30) } }),
-          neighbours: region.neighbours,
-          continentId: region.continentId
-        }
-      })
-      setMap(data);
-    });
+      .then(res => res.json())
+      .then(data => { setMap(data) });
 
     socket.emit("get rooms");
 
@@ -59,7 +48,7 @@ export default ({ io, socket }) => {
       socket.open();
       socket.on("refresh rooms", rooms => { setRooms(rooms) })
       socket.on("load game", () => { setRoomRedirect(true) });
-      socket.on("room", room => { setRoom(room); console.log(room)});
+      socket.on("room", room => { setRoom(room) });
     }
     catch (error) {
       console.error(error);
@@ -86,7 +75,6 @@ export default ({ io, socket }) => {
             let input = e.target[0].value
             if (validateName(input)) {
               setUsername(input);
-              localStorage.setItem("username", input);
               setUsernameDialogIsOpen(false);
               setshowUsernameError(false);
               socket.emit("set username", input);
@@ -141,8 +129,6 @@ export default ({ io, socket }) => {
             }
             else {
               socket.emit("create room", { roomname: rm, password: pass, maxUsers: maxUsers });
-              setRoom=
-              socket.emit("get rooms");
               setRoomDialogIsOpen(false);
               setWaitingDialogIsOpen(true);
               setCreateRoomError(false);

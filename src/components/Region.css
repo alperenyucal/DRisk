@@ -1,0 +1,11 @@
+.active:hover {
+  filter: brightness(90%);
+}
+
+.selected {
+  filter: brightness(80%)
+}
+
+.passive {
+  filter: brightness(70%);
+}

@@ -69,8 +69,9 @@ module.exports = (server) => {
       users[getUserIndex(socket.id)].username = username;
     })
 
+    // chat
     socket.on("message", ({ message, room }) => {
-      io.to(room).emit('message', message);
+      io.to(room).emit('message', { message: message, socketId: socket.id });
     })
 
     // creates a new room. 
@@ -83,22 +84,18 @@ module.exports = (server) => {
         socket.join(roomname);
         io.to(room.name).emit("room", room.getRoomDetails());
       }
-      else console.error("room exists");
     })
 
     // joins user to a room.
     socket.on("join room", ({ roomname, password }) => {
-      let exists = false;
       rooms.map((room) => {
         if (room.name == roomname && room.maxUsers > room.getUserCount() && password == room.password) {
           socket.join(roomname);
           io.to(room.name).emit("room", room.getRoomDetails());
           if (room.maxUsers == room.getUserCount())
             io.to(room.name).emit("load game");
-          exists = true;
         }
       })
-      if (!exists) console.error("room doesn't exist");
     })
 
     // disconnects user from room.
@@ -132,8 +129,6 @@ module.exports = (server) => {
     })
 
     socket.on("set started", ({ roomname, isStarted }) => {
-      console.log("lol");
-      console.log(io.sockets.adapter.rooms);
       io.to(roomname).emit("set started", isStarted);
     })
 
@@ -152,7 +147,6 @@ module.exports = (server) => {
     socket.on("set users", ({ roomname, users }) => {
       io.to(roomname).emit("set users", users);
     })
-
 
   });
 }

@@ -1,5 +1,15 @@
+#game-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  float: right;
+}
+
 #map {
-  display: block;
-  margin: auto;
-  border: 2px solid black;
+  flex: auto;
+  border: 3px solid black;
+}
+
+#bottom {
+  flex: auto;
 }
