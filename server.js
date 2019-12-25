@@ -4,7 +4,7 @@ const cors = require("cors");
 
 const app = express();
 const server = require('http').Server(app);
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 const rooms = require("./rooms");
 
