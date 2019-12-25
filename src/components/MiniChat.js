@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { InputGroup, Button } from "@blueprintjs/core";
+import { Button, InputGroup } from "@blueprintjs/core";
 
 export default ({ socket, room, style, users }) => {
 
@@ -53,7 +53,7 @@ export default ({ socket, room, style, users }) => {
       }}>
         <div style={{ display: "flex", width: "100%" }}>
           <div style={{ flex: "auto", marginRight: "2px" }}><InputGroup /></div>
-          <div><Button type="submit">Send</Button></div>
+          <Button type="submit">Send</Button>
         </div>
       </form>
     </div>

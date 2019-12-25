@@ -2,6 +2,7 @@ import React from "react";
 import { render } from "react-dom";
 import "./pages/Home";
 import Home from "./pages/Home";
+import MapTest from "./pages/MapTest";
 import MapEditor from "./pages/MapEditor";
 import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
 import "normalize.css";
@@ -15,6 +16,7 @@ render((
     <Switch>
       <Route exact path="/" render={(props)=><Home {...props} io={io} socket={socket} />} />
       <Route exact path="/mapeditor" component={MapEditor} />
+      <Route exact path="/maptest" component={MapTest} />
       <Route exact path="*">404</Route>
     </Switch>
   </Router>

@@ -23,6 +23,8 @@ export default ({ io, socket }) => {
   let [waitingDialogIsOpen, setWaitingDialogIsOpen] = useState(false);
   let [showCreateRoomError, setCreateRoomError] = useState(false);
 
+  // User
+  let [user, setUser] = useState({ username: null, socketId: null });
 
   let [map, setMap] = useState(null);
   // Checks if the given username is valid
@@ -43,12 +45,14 @@ export default ({ io, socket }) => {
       .then(data => { setMap(data) });
 
     socket.emit("get rooms");
+    socket.emit("who am i");
 
     try {
       socket.open();
       socket.on("refresh rooms", rooms => { setRooms(rooms) })
       socket.on("load game", () => { setRoomRedirect(true) });
       socket.on("room", room => { setRoom(room) });
+      socket.on("you are", usr => { setUser(usr) });
     }
     catch (error) {
       console.error(error);
@@ -57,7 +61,7 @@ export default ({ io, socket }) => {
   }, []);
 
 
-  return roomRedirect ? <Game room={room} map={map} socket={socket} /> : (
+  return roomRedirect ? <Game user={user} room={room} map={map} socket={socket} /> : (
     <div id="main-container">
       {/* Dialog Box to get username */}
       <Dialog
@@ -78,6 +82,7 @@ export default ({ io, socket }) => {
               setUsernameDialogIsOpen(false);
               setshowUsernameError(false);
               socket.emit("set username", input);
+              socket.emit("who am i");
             }
           }}>
             <InputGroup autoFocus defaultValue={username} />

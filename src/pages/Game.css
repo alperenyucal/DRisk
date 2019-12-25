@@ -1,3 +1,8 @@
+#container-main {
+  display: flex;
+  flex-direction: row;
+}
+
 #game-container {
   height: 100vh;
   display: flex;
@@ -12,4 +17,11 @@
 
 #bottom {
   flex: auto;
+}
+
+#stage-ui {
+  display: flex;
+  flex: auto;
+  align-items: center;
+  justify-content: center;
 }

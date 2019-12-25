@@ -23,7 +23,7 @@ export default () => {
           lineColor="black"
           width="2"
           fillColor={index == 0 || index == 1 || index == 2 ? "blue" : "gray"}
-          active={index == 0 ? true : false}
+          active={true}//index == 0 ? true : false}
           selected={index == 2 ? true : false}
           regionName={region.name}
           nodes={region.nodes} />

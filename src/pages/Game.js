@@ -8,7 +8,7 @@ import { Button, Dialog } from "@blueprintjs/core";
 
 const usercolors = ["red", "blue", "yellow", "green", "black", "purple"];
 
-export default ({ socket, map, room }) => {
+export default ({ user, room, map, socket }) => {
 
   let [regions, setRegions] = useState(map.regions.map(region => {
     return Object.assign(region, {
@@ -21,36 +21,33 @@ export default ({ socket, map, room }) => {
   let [continents, setContinents] = useState(map.continents);
   let [users, setUsers] = useState(room.users);
   let [turn, setTurn] = useState(users[0]);
-  let [user, setUser] = useState(null);
   let [isFinished, setIsFinished] = useState(false);
   let [isStarted, setStarted] = useState(false);
   let [stage, setStage] = useState("soldierDist"); // ["soldierDist", "placement", "attack", "replacement"]
 
   // UI state
   let [isStartDialogOpen, setStartIsOpen] = useState(true);
-  let [regionActive, setRegionActive] = useState(map.regions.map(() => true));
+  let [regionActive, setRegionActive] = useState(map.regions.map(() => false));
 
 
-  let isMyturn = () => {
-    let isIt = false;
-    if (user != null)
-      if (user.socketId == turn.socketId)
-        isIt = true;
-    return isIt;
-  }
-
-  let getMyName = () => user == null ? null : user.username;
+  const isMyturn = () => user.socketId == turn.socketId;
 
 
-  let getUserColor = (sckt) => {
+  const getMyName = () => user == null ? null : user.username;
+
+
+  const getUserData = (sckt) => {
     let u = users.find(usr => usr.socketId == sckt);
-    if (u != undefined)
-      if (u.hasOwnProperty("color"))
-        return u.color;
-    return "gray";
+
+    return u || {
+      username: null,
+      socketId: null,
+      soldiersToPlace: null,
+      color: null,
+    };
   };
 
-  let startHandler = () => {
+  const startHandler = () => {
     let totalSoldiers = 3 * (regions.length);
     totalSoldiers -= totalSoldiers % users.length;
     let userSoldiers = totalSoldiers / users.length;
@@ -87,11 +84,11 @@ export default ({ socket, map, room }) => {
     startSoldierDist();
   };
 
-  let startSoldierDist = () => {
+  const startSoldierDist = () => {
     setRegionActive(regions.map(rg => rg.occupiedById == user.socketId));
   };
 
-  let placeSoldiersToRegion = (rgn, sckt, sldrs) => {
+  const placeSoldiersToRegion = (rgn, sckt, sldrs) => {
     let temp = [...users];
     temp.find(usr => usr.socketId == sckt).soldiersToPlace -= sldrs;
     socket.emit("set users", { roomname: room.name, users: temp });
@@ -100,18 +97,25 @@ export default ({ socket, map, room }) => {
     socket.emit("set regions", { roomname: room.name, regions: temp });
   };
 
-  let assignRegionToUser = (rgn, sckt) => {
+  const assignRegionToUser = (rgn, sckt) => {
     let temp = [...regions];
     temp.find(rg => rg.id == rgn).occupiedById = sckt;
     socket.emit("set regions", { roomname: room.name, regions: temp });
   }
 
+  const endTurn = () => {
+    socket.emit("set turn", {
+      roomname: room.name,
+      turn: users[(users.findIndex(usr => usr.socketId == user.socketId) + 1) % users.length]
+    });
+
+    setRegionActive(regionActive.map(() => false));
+  }
+
   useEffect(() => {
-    socket.emit("who am i");
 
     try {
       // events
-      socket.on("you are", (usr) => { setUser(usr); });
       socket.on("set regions", (rgns) => { setRegions(rgns); })
       socket.on("set started", (strd) => {
         setStarted(strd);
@@ -126,42 +130,61 @@ export default ({ socket, map, room }) => {
     catch (error) {
       console.error(error);
     }
-    return () => {
-    };
+
   })
 
+  const SoldierDistUI = () => (
+    <div>
+      <Button>place soldier</Button>
+    </div>
+  );
+
+  const Status = () => (
+    <div>
+      soldiers: {getUserData(user.socketId).soldiersToPlace}
+    </div>
+  );
 
   return (
-    <div id="game-container">
-      <Dialog
-        className="bp3-dark"
-        isOpen={isStartDialogOpen}
-        style={{
-          padding: "20px"
-        }}>
-        Hello {getMyName()} <br /><br />
-        {isMyturn() && !isStarted ? <Button
-          onClick={startHandler}>Start Game</Button> :
-          "Waiting for first user to start the game."
-        }
-      </Dialog>
-      <Map showOceans id="map" width="150vh" height="75vh">
-        {regions.map((region, i) =>
-          <Region
-            active={regionActive[i]}
-            key={region.id}
-            regionName={region.name}
-            nodes={region.nodes}
-            lineColor="black"
-            width={2}
-            soldiers={region.soldierCount}
-            fillColor={continents.find(continent => continent.id == region.continentId).color}
-            textColor={getUserColor(region.occupiedById)}
-          />
-        )}
-      </Map>
-      <div id="bottom">
-        <MiniChat socket={socket} room={room} users={users} style={{ width: "150vh", height: "25vh" }} />
+    <div id="container-main">
+      <div id="stage-ui">
+        <Status />
+        <SoldierDistUI />
       </div>
+
+      <div id="game-container">
+        <Dialog
+          className="bp3-dark"
+          isOpen={isStartDialogOpen}
+          style={{
+            padding: "20px"
+          }}>
+          Hello {getMyName()} <br /><br />
+          {isMyturn() && !isStarted ? <Button
+            onClick={startHandler}>Start Game</Button> :
+            "Waiting for first user to start the game."
+          }
+        </Dialog>
+        <Map showOceans id="map" width="150vh" height="75vh">
+          {regions.map((region, i) =>
+            <Region
+              active={regionActive[i]}
+              key={region.id}
+              regionName={region.name}
+              nodes={region.nodes}
+              lineColor="black"
+              width={2}
+              soldiers={region.soldierCount}
+              fillColor={continents.find(continent => continent.id == region.continentId).color}
+              textColor={getUserData(region.occupiedById).color}
+            />
+          )}
+        </Map>
+        <div id="bottom">
+          <MiniChat socket={socket} room={room} users={users} style={{ width: "150vh", height: "25vh" }} />
+        </div>
+
+      </div>
+
     </div>)
 };
