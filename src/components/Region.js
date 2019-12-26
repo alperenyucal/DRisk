@@ -2,7 +2,17 @@ import React from "react";
 import "./Region.css"
 
 // Nodes is a list of nodes of the region
-export default ({ nodes, lineColor, width, fillColor, soldiers, regionName, textColor, active, selected }) => {
+export default ({
+  nodes,
+  lineColor,
+  width,
+  fillColor,
+  soldiers,
+  regionName,
+  textColor,
+  active,
+  selected,
+  onClick }) => {
 
   let path;
   let middle_x = 0;
@@ -33,13 +43,13 @@ export default ({ nodes, lineColor, width, fillColor, soldiers, regionName, text
     middle_y = sum_y / nodes.length;
 
   }
-  else {path = nodes};
+  else { path = nodes };
 
   let className = active ? "active" : "passive";
   className = selected ? "selected" : className;
 
   return (
-    <g className={className}>
+    <g className={className} onClick={onClick}>
       <path d={path} stroke={lineColor} strokeWidth={width} fill={fillColor}></path>
       <text x={middle_x} y={middle_y - 10} textAnchor="middle" style={{ userSelect: "none", font: "bold 15px sans-serif" }}>
         {regionName}

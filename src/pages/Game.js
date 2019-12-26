@@ -3,27 +3,40 @@ import Map from "../components/Map";
 import Region from "../components/Region";
 import MiniChat from "../components/MiniChat";
 import "./Game.css"
-import { Button, Dialog } from "@blueprintjs/core";
+import { Button, Dialog, Card, Colors } from "@blueprintjs/core";
 
 
-const usercolors = ["red", "blue", "yellow", "green", "black", "purple"];
+const USERCOLORS = ["red", "blue", "yellow", "green", "orange", "purple"];
+
+const STAGES = {
+  DISTRIBUTION: "DISTRIBUTION",
+  PLACEMENT: "PLACEMENT",
+  ATTACK: "ATTACK",
+  REPLACEMENT: "REPLACEMENT"
+}
 
 export default ({ user, room, map, socket }) => {
 
-  let [regions, setRegions] = useState(map.regions.map(region => {
-    return Object.assign(region, {
-      soldierCount: 0,
-      occupiedById: null
-    })
-  }))
+
+  // Region stuff
+  let [regions, setRegions] = useState(map.regions.map(region => Object.assign(region, {
+    soldierCount: 0,
+    occupiedById: null
+  })));
+  let [baseRegion, setBaseRegion] = useState(null); // region id
+  let [targetRegion, setTargetRegion] = useState(null);
+
 
   // Game state
   let [continents, setContinents] = useState(map.continents);
-  let [users, setUsers] = useState(room.users);
+  let [users, setUsers] = useState(room.users.map((usr, i) => Object.assign(usr, {
+    color: USERCOLORS[i]
+  })));
   let [turn, setTurn] = useState(users[0]);
   let [isFinished, setIsFinished] = useState(false);
   let [isStarted, setStarted] = useState(false);
-  let [stage, setStage] = useState("soldierDist"); // ["soldierDist", "placement", "attack", "replacement"]
+  let [stage, setStage] = useState(STAGES.DISTRIBUTION);
+
 
   // UI state
   let [isStartDialogOpen, setStartIsOpen] = useState(true);
@@ -31,10 +44,7 @@ export default ({ user, room, map, socket }) => {
 
 
   const isMyturn = () => user.socketId == turn.socketId;
-
-
-  const getMyName = () => user == null ? null : user.username;
-
+  const isMyRegion = (rgid) => regions.find(rg => rg.id == rgid).occupiedById == user.socketId;
 
   const getUserData = (sckt) => {
     let u = users.find(usr => usr.socketId == sckt);
@@ -56,8 +66,7 @@ export default ({ user, room, map, socket }) => {
     socket.emit("set users", {
       roomname: room.name,
       users: users.map((usr, i) => Object.assign(usr, {
-        soldiersToPlace: userSoldiers,
-        color: usercolors[i]
+        soldiersToPlace: userSoldiers
       }))
     })
 
@@ -74,7 +83,8 @@ export default ({ user, room, map, socket }) => {
         let randomIndex = Math.floor((Math.random() * temp.length))
         let reg = temp[randomIndex];
         assignRegionToUser(reg.id, user.socketId);
-        placeSoldiersToRegion(reg.id, user.socketId, 1);
+        addRemoveFromRegion(reg.id, 1);
+        addRemoveFromReserve(user.socketId, -1);
         temp.splice(randomIndex, 1);
       }
     })
@@ -88,14 +98,17 @@ export default ({ user, room, map, socket }) => {
     setRegionActive(regions.map(rg => rg.occupiedById == user.socketId));
   };
 
-  const placeSoldiersToRegion = (rgn, sckt, sldrs) => {
-    let temp = [...users];
-    temp.find(usr => usr.socketId == sckt).soldiersToPlace -= sldrs;
-    socket.emit("set users", { roomname: room.name, users: temp });
-    temp = [...regions];
+  const addRemoveFromRegion = (rgn, sldrs) => {
+    let temp = [...regions];
     temp.find(rg => rg.id == rgn).soldierCount += sldrs;
     socket.emit("set regions", { roomname: room.name, regions: temp });
   };
+
+  const addRemoveFromReserve = (sckt, sldrs) => {
+    let temp = [...users];
+    temp.find(usr => usr.socketId == sckt).soldiersToPlace += sldrs;
+    socket.emit("set users", { roomname: room.name, users: temp });
+  }
 
   const assignRegionToUser = (rgn, sckt) => {
     let temp = [...regions];
@@ -112,6 +125,17 @@ export default ({ user, room, map, socket }) => {
     setRegionActive(regionActive.map(() => false));
   }
 
+  let handleRegionClick = (region) => {
+    if (isMyturn()) {
+      switch (stage) {
+        case STAGES.DISTRIBUTION:
+          if (isMyRegion(region.id))
+            setTargetRegion(region.id);
+          break;
+      }
+    }
+  }
+
   useEffect(() => {
 
     try {
@@ -122,7 +146,9 @@ export default ({ user, room, map, socket }) => {
         setStartIsOpen(false);
       })
       socket.on("set finished", (fnsd) => { setIsFinished(fnsd); })
-      socket.on("set turn", (trn) => { setTurn(trn); })
+      socket.on("set turn", (trn) => {
+        setTurn(trn);
+      })
       socket.on("set continents", (cntnts) => { setContinents(cntnts); })
       socket.on("set users", (usrs) => { setUsers(usrs); })
 
@@ -133,23 +159,53 @@ export default ({ user, room, map, socket }) => {
 
   })
 
-  const SoldierDistUI = () => (
+  const DistUI = () => (
     <div>
-      <Button>place soldier</Button>
+      <Button onClick={() => {
+        if (
+          isMyturn() &&
+          users.find(usr => usr.socketId == user.socketId).soldiersToPlace > 0 &&
+          regions.find(rg => rg.id == targetRegion).occupiedById == user.socketId
+        ) {
+          addRemoveFromRegion(targetRegion, 1);
+          addRemoveFromReserve(user.socketId, -1);
+          endTurn();
+        }
+      }}>Place soldier</Button>
+      {targetRegion != null ?
+        <div>You are going to place a soldier to {regions.find(rg => rg.id == targetRegion).name}</div> :
+        <div>no region is selected</div>}
     </div>
-  );
+  )
+
+  const Interactions = () => {
+    let interaction;
+    switch (stage) {
+      case STAGES.DISTRIBUTION:
+        interaction = <DistUI />;
+        break;
+      case STAGES.PLACEMENT:
+      case STAGES.ATTACK:
+      case STAGES.REPLACEMENT:
+        break;
+    }
+    return interaction;
+  }
 
   const Status = () => (
-    <div>
-      soldiers: {getUserData(user.socketId).soldiersToPlace}
-    </div>
+    <Card>
+      <div>
+        {users.map(usr => <div style={{ color: usr.color }}>
+          {usr.username}: {usr.soldiersToPlace} soldiers {usr.socketId == user.socketId ? "(you)" : null}</div>)}
+      </div>
+    </Card>
   );
 
   return (
     <div id="container-main">
       <div id="stage-ui">
         <Status />
-        <SoldierDistUI />
+        {isMyturn() ? <Interactions /> : null}
       </div>
 
       <div id="game-container">
@@ -157,17 +213,20 @@ export default ({ user, room, map, socket }) => {
           className="bp3-dark"
           isOpen={isStartDialogOpen}
           style={{
-            padding: "20px"
+            padding: "20px",
+            display: "flex",
+            flexDirection: "column"
           }}>
-          Hello {getMyName()} <br /><br />
+          <h4>Hello {user.username}</h4>
           {isMyturn() && !isStarted ? <Button
             onClick={startHandler}>Start Game</Button> :
-            "Waiting for first user to start the game."
+            <div>Waiting for first user to start the game.</div>
           }
         </Dialog>
         <Map showOceans id="map" width="150vh" height="75vh">
           {regions.map((region, i) =>
             <Region
+              onClick={() => handleRegionClick(region)}
               active={regionActive[i]}
               key={region.id}
               regionName={region.name}
