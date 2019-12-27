@@ -8,7 +8,7 @@ export default () => {
   let [regions, setRegions] = useState([]);
 
   useEffect(() => {
-    fetch("/static/map.json")
+    fetch("/static/map2.json")
       .then(res => res.json())
       .then(data => {
         setRegions(data.regions);

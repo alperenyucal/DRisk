@@ -8,8 +8,8 @@ export default ({ socket, room, style, users }) => {
 
   useEffect(() => {
     try {
-      socket.on('message', ({ message, socketId }) => {
-        setMessages(messages => [...messages, { message: message, socketId: socketId }])
+      socket.on('message', ({ message, socketId, log }) => {
+        setMessages(messages => [...messages, { message: message, socketId: socketId, log: log }])
       });
     }
     catch (error) {
@@ -36,11 +36,13 @@ export default ({ socket, room, style, users }) => {
       }}>
         {messages.slice(0).reverse().slice(0, 10).map((msg, i) => {
           let user = users.find(usr => usr.socketId == msg.socketId)
-          return (
-            <div key={i}>
+          return msg.log ? (
+            <div key={i} style={{ color: "gray" }}>
+              {msg.message}
+            </div>
+          ) : <div key={i}>
               <span style={{ color: user.color }}>{user.username}: </span> {msg.message}
             </div>
-          )
         })}
       </div>
       <form ref={form} style={{ flex: "1" }} onSubmit={e => {

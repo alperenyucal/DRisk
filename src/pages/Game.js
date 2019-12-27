@@ -3,7 +3,7 @@ import Map from "../components/Map";
 import Region from "../components/Region";
 import MiniChat from "../components/MiniChat";
 import "./Game.css"
-import { Button, Dialog, Card, Colors } from "@blueprintjs/core";
+import { Button, Dialog, Card, NumericInput } from "@blueprintjs/core";
 
 
 const USERCOLORS = ["red", "blue", "yellow", "green", "orange", "purple"];
@@ -25,6 +25,7 @@ export default ({ user, room, map, socket }) => {
   })));
   let [baseRegion, setBaseRegion] = useState(null); // region id
   let [targetRegion, setTargetRegion] = useState(null);
+  let [baseSelected, setBaseSelected] = useState(false);
 
 
   // Game state
@@ -32,19 +33,20 @@ export default ({ user, room, map, socket }) => {
   let [users, setUsers] = useState(room.users.map((usr, i) => Object.assign(usr, {
     color: USERCOLORS[i]
   })));
+  let turnStarted = false;
   let [turn, setTurn] = useState(users[0]);
+
+  let isMyturn = () => user.socketId == turn.socketId;
+  let isMyRegion = (rgid) => regions.find(rg => rg.id == rgid).occupiedById == user.socketId;
+
   let [isFinished, setIsFinished] = useState(false);
+  let [isDistFinished, setDistFinished] = useState(false);
   let [isStarted, setStarted] = useState(false);
-  let [stage, setStage] = useState(STAGES.DISTRIBUTION);
+  let [stage, setStage] = useState(isMyturn() ? STAGES.DISTRIBUTION : null);
 
 
-  // UI state
-  let [isStartDialogOpen, setStartIsOpen] = useState(true);
-  let [regionActive, setRegionActive] = useState(map.regions.map(() => false));
-
-
-  const isMyturn = () => user.socketId == turn.socketId;
-  const isMyRegion = (rgid) => regions.find(rg => rg.id == rgid).occupiedById == user.socketId;
+  let [showAttackPlacement, setAttackPlacement] = useState(false);
+  let [lost, setLost] = useState(false);
 
   const getUserData = (sckt) => {
     let u = users.find(usr => usr.socketId == sckt);
@@ -58,7 +60,7 @@ export default ({ user, room, map, socket }) => {
   };
 
   const startHandler = () => {
-    let totalSoldiers = 3 * (regions.length);
+    let totalSoldiers = 2 * regions.length;
     totalSoldiers -= totalSoldiers % users.length;
     let userSoldiers = totalSoldiers / users.length;
 
@@ -91,12 +93,9 @@ export default ({ user, room, map, socket }) => {
 
     // now start
     socket.emit("set started", { roomname: room.name, isStarted: true });
-    startSoldierDist();
+    socket.emit("message", { message: "Game has started.", room: room.name, log: true });
   };
 
-  const startSoldierDist = () => {
-    setRegionActive(regions.map(rg => rg.occupiedById == user.socketId));
-  };
 
   const addRemoveFromRegion = (rgn, sldrs) => {
     let temp = [...regions];
@@ -117,20 +116,46 @@ export default ({ user, room, map, socket }) => {
   }
 
   const endTurn = () => {
+    turnStarted = false;
     socket.emit("set turn", {
       roomname: room.name,
       turn: users[(users.findIndex(usr => usr.socketId == user.socketId) + 1) % users.length]
     });
-
-    setRegionActive(regionActive.map(() => false));
   }
 
   let handleRegionClick = (region) => {
     if (isMyturn()) {
       switch (stage) {
         case STAGES.DISTRIBUTION:
+        case STAGES.PLACEMENT:
           if (isMyRegion(region.id))
             setTargetRegion(region.id);
+          break;
+        case STAGES.REPLACEMENT:
+          if (isMyRegion(region.id)) {
+            if (baseSelected) {
+              setTargetRegion(region.id);
+              setBaseSelected(false);
+            }
+            else {
+              setBaseSelected(true);
+              setBaseRegion(region.id);
+            }
+          }
+          break;
+        case STAGES.ATTACK:
+          if (baseSelected) {
+            if (!isMyRegion(region.id)) {
+              setTargetRegion(region.id);
+              setBaseSelected(false);
+            }
+          }
+          else {
+            if (isMyRegion(region.id)) {
+              setBaseSelected(true);
+              setBaseRegion(region.id);
+            }
+          }
           break;
       }
     }
@@ -140,23 +165,53 @@ export default ({ user, room, map, socket }) => {
 
     try {
       // events
-      socket.on("set regions", (rgns) => { setRegions(rgns); })
-      socket.on("set started", (strd) => {
-        setStarted(strd);
-        setStartIsOpen(false);
-      })
-      socket.on("set finished", (fnsd) => { setIsFinished(fnsd); })
+      socket.on("set regions", (rgns) => { setRegions(rgns) });
+      socket.on("set started", (strd) => { setStarted(strd) });
+      socket.on("set dist finished", (fnsd) => { setDistFinished(fnsd) });
+      socket.on("set finished", (fnsd) => { setIsFinished(fnsd) });
       socket.on("set turn", (trn) => {
-        setTurn(trn);
-      })
-      socket.on("set continents", (cntnts) => { setContinents(cntnts); })
-      socket.on("set users", (usrs) => { setUsers(usrs); })
+        if (!turnStarted) {
+          setTurn(trn);
+          turnStarted = true;
+          if (trn.socketId == user.socketId) { // is my turn?
+
+            if (users.length == 1) {
+              setIsFinished(true);
+              socket.close();
+            }
+
+            // you lost
+            /*if (regions.filter(rg => rg.occupiedById == user.socketId).length == 0) {
+              let temp = [...users];
+              let i = temp.findIndex(usr => usr.socketId == user.socketId);
+              temp.splice(i, 1);
+              endTurn();
+              socket.emit("set users", { roomname: room.name, users: temp });
+              socket.close();
+              setLost(true);
+            };*/
+
+            setStage(isDistFinished ? STAGES.PLACEMENT : STAGES.DISTRIBUTION);
+            if (isDistFinished) {
+              let sldrs = Math.floor(regions.filter(rg => rg.occupiedById == user.socketId).length / 3);
+              if (sldrs < 3) sldrs = 3;
+              let temp = [...users];
+              temp.find(usr => usr.socketId == user.socketId).soldiersToPlace = sldrs;
+              socket.emit("set users", { roomname: room.name, users: temp });
+            }
+          }
+          else
+            setStage(null);
+        }
+
+      });
+      socket.on("set continents", (cntnts) => { setContinents(cntnts) });
+      socket.on("set users", (usrs) => { setUsers(usrs) });
 
     }
     catch (error) {
       console.error(error);
     }
-
   })
 
   const DistUI = () => (
@@ -164,11 +219,25 @@ export default ({ user, room, map, socket }) => {
       <Button onClick={() => {
         if (
           isMyturn() &&
-          users.find(usr => usr.socketId == user.socketId).soldiersToPlace > 0 &&
           regions.find(rg => rg.id == targetRegion).occupiedById == user.socketId
         ) {
-          addRemoveFromRegion(targetRegion, 1);
-          addRemoveFromReserve(user.socketId, -1);
+          if (getUserData(user.socketId).soldiersToPlace > 0) {
+            addRemoveFromRegion(targetRegion, 1);
+            addRemoveFromReserve(user.socketId, -1);
+
+            socket.emit("message", {
+              message: user.username + " placed a soldier to " + regions.find(rg => rg.id == targetRegion).name + ".",
+              room: room.name,
+              log: true
+            });
+
+            let total = 0;
+            users.map(usr => { total += usr.soldiersToPlace });
+            if (total == 0)
+              socket.emit("set dist finished", { roomname: room.name, isDistFinished: true });
+            setTargetRegion(null);
+          }
+
           endTurn();
         }
       }}>Place soldier</Button>
@@ -178,6 +247,169 @@ export default ({ user, room, map, socket }) => {
     </div>
   )
 
+  const PlacementUI = () => (
+    <div>
+      <form onSubmit={e => {
+        e.preventDefault();
+
+        let usrData = getUserData(user.socketId);
+        let num = Number(e.target[0].value);
+        if (
+          num > 0 &&
+          num <= usrData.soldiersToPlace && // to place
+          isMyturn() &&
+          regions.find(rg => rg.id == targetRegion).occupiedById == user.socketId
+        ) {
+          addRemoveFromRegion(targetRegion, num);
+          addRemoveFromReserve(user.socketId, -num);
+          if (usrData.soldiersToPlace == 0)
+            setStage(STAGES.ATTACK);
+          setTargetRegion(null);
+        }
+      }}>
+        <NumericInput />
+        <Button type="submit">Place soldier</Button>
+      </form>
+      <div>Placement time</div>
+      {targetRegion != null ?
+        <div>You are going to place a few soldiers to {regions.find(rg => rg.id == targetRegion).name}</div> :
+        <div>no region is selected</div>}
+    </div>
+  )
+
+  const ReplacementUI = () => (
+    <div>
+      <form onSubmit={e => {
+        e.preventDefault();
+
+        let num = Number(e.target[0].value);
+        if (
+          num > 0 &&
+          num < regions.find(rg => rg.id == baseRegion).soldierCount &&
+          isMyturn() &&
+          regions.find(rg => rg.id == baseRegion).occupiedById == user.socketId &&
+          regions.find(rg => rg.id == targetRegion).occupiedById == user.socketId
+        ) {
+          addRemoveFromRegion(baseRegion, -num);
+          addRemoveFromRegion(targetRegion, +num);
+
+          setBaseRegion(null);
+          setBaseSelected(null);
+          setTargetRegion(null);
+
+          endTurn();
+        }
+      }}>
+        <NumericInput />
+        <Button type="submit">Replace soldier</Button>
+      </form>
+      <Button onClick={() => { endTurn() }}>Pass</Button>
+      <div>Replacement time</div>
+      {baseRegion != null ?
+        <div>You are going to replace soldiers from {regions.find(rg => rg.id == baseRegion).name}</div> :
+        <div>no region is selected</div>}
+      {targetRegion != null ?
+        <div>You are going to place soldiers to {regions.find(rg => rg.id == targetRegion).name}</div> :
+        <div>no region is selected</div>}
+    </div>
+  )
+
+  const AttackUI = () => {
+
+    return (
+      <div>
+        {showAttackPlacement ?
+          <div>
+            <form onSubmit={e => {
+              e.preventDefault();
+              let num = Number(e.target[0].value);
+              if (
+                num > 0 &&
+                num < regions.find(rg => rg.id == baseRegion).soldierCount &&
+                isMyturn() &&
+                regions.find(rg => rg.id == baseRegion).occupiedById == user.socketId &&
+                regions.find(rg => rg.id == targetRegion).occupiedById == user.socketId
+              ) {
+                addRemoveFromRegion(baseRegion, -num);
+                addRemoveFromRegion(targetRegion, num);
+              }
+              setAttackPlacement(false);
+            }}>
+              <NumericInput />
+              <Button type="submit">Move</Button>
+            </form>
+
+          </div> :
+          <div>
+            <form onSubmit={e => {
+              e.preventDefault();
+
+              if (
+                1 < regions.find(rg => rg.id == baseRegion).soldierCount &&
+                isMyturn() &&
+                isMyRegion(baseRegion) &&
+                !isMyRegion(targetRegion) &&
+                regions.find(rg => rg.id == baseRegion).neighbours.includes(targetRegion)
+              ) {
+
+                let defenceDiceCount = regions.find(rg => rg.id == targetRegion).soldierCount == 1 ? 1 : 2;
+                let attackDiceCount = regions.find(rg => rg.id == baseRegion).soldierCount > 3 ? 3 :
+                  regions.find(rg => rg.id == baseRegion).soldierCount - 1;
+
+                let attackDices = ([...Array(attackDiceCount)].map(() => Math.floor(Math.random() * 6 + 1)).sort().reverse());
+                let defenceDices = ([...Array(defenceDiceCount)].map(() => Math.floor(Math.random() * 6 + 1)).sort().reverse());
+
+                // Attack logs, dice info etc.
+                socket.emit("message", {
+                  message: user.username + " attacked from " + regions.find(rg => rg.id == baseRegion).name +
+                    " to " + regions.find(rg => rg.id == targetRegion).name + ". " +
+                    "attack dices:" + attackDices.map(d => " " + d) +
+                    " |" + defenceDices.map(d => " " + d) + " :defence dices",
+                  room: room.name,
+                  log: true
+                });
+
+                let baseloss = 0;
+                let targetloss = 0;
+
+                let arr = attackDiceCount > defenceDiceCount ? defenceDices : attackDices;
+                arr.map((dice, index) => {
+                  if (dice >= attackDices[index]) baseloss++;
+                  else targetloss++;
+                })
+
+                addRemoveFromRegion(baseRegion, -baseloss);
+                addRemoveFromRegion(targetRegion, -targetloss);
+
+                if (regions.find(rg => rg.id == targetRegion).soldierCount == 0) { // Attack and occupy
+                  assignRegionToUser(targetRegion, user.socketId);
+                  setAttackPlacement(true);
+                }
+
+              }
+            }}>
+              <Button type="submit">Attack</Button>
+            </form>
+            <Button onClick={() => {
+              setBaseRegion(null);
+              setBaseSelected(null);
+              setTargetRegion(null);
+              setStage(STAGES.REPLACEMENT)
+            }}>
+              End Stage
+            </Button>
+            <div>Attack time</div>
+            {baseRegion != null ?
+              <div>You are going to attack from {regions.find(rg => rg.id == baseRegion).name}</div> :
+              <div>no region is selected</div>}
+            {targetRegion != null ?
+              <div>You are going to attack to {regions.find(rg => rg.id == targetRegion).name}</div> :
+              <div>no region is selected</div>}
+          </div>}
+      </div>
+    )
+  }
+
   const Interactions = () => {
     let interaction;
     switch (stage) {
@@ -185,8 +417,16 @@ export default ({ user, room, map, socket }) => {
         interaction = <DistUI />;
         break;
       case STAGES.PLACEMENT:
+        interaction = <PlacementUI />;
+        break;
       case STAGES.ATTACK:
+        interaction = <AttackUI />;
+        break;
       case STAGES.REPLACEMENT:
+        interaction = <ReplacementUI />;
+        break;
+      default:
+        interaction = null;
         break;
     }
     return interaction;
@@ -195,8 +435,12 @@ export default ({ user, room, map, socket }) => {
   const Status = () => (
     <Card>
       <div>
-        {users.map(usr => <div style={{ color: usr.color }}>
-          {usr.username}: {usr.soldiersToPlace} soldiers {usr.socketId == user.socketId ? "(you)" : null}</div>)}
+        <div>turn: {turn.username}</div>
+        {users.map(usr => (
+          <div key={usr.socketId} style={{ color: usr.color }}>
+            {usr.username}: {usr.soldiersToPlace} soldiers {usr.socketId == user.socketId ? "(you)" : null}
+          </div>
+        ))}
       </div>
     </Card>
   );
@@ -205,13 +449,13 @@ export default ({ user, room, map, socket }) => {
     <div id="container-main">
       <div id="stage-ui">
         <Status />
-        {isMyturn() ? <Interactions /> : null}
+        <Interactions />
       </div>
 
       <div id="game-container">
         <Dialog
           className="bp3-dark"
-          isOpen={isStartDialogOpen}
+          isOpen={!isStarted}
           style={{
             padding: "20px",
             display: "flex",
@@ -223,11 +467,31 @@ export default ({ user, room, map, socket }) => {
             <div>Waiting for first user to start the game.</div>
           }
         </Dialog>
+        <Dialog
+          className="bp3-dark"
+          isOpen={isFinished}
+          style={{
+            padding: "20px",
+            display: "flex",
+            flexDirection: "column"
+          }}>
+          <h4>You won {user.username}</h4>
+        </Dialog>
+        <Dialog
+          className="bp3-dark"
+          isOpen={lost}
+          style={{
+            padding: "20px",
+            display: "flex",
+            flexDirection: "column"
+          }}>
+          <h4>You lost</h4>
+        </Dialog>
         <Map showOceans id="map" width="150vh" height="75vh">
           {regions.map((region, i) =>
             <Region
               onClick={() => handleRegionClick(region)}
-              active={regionActive[i]}
+              active={true}
               key={region.id}
               regionName={region.name}
               nodes={region.nodes}

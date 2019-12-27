@@ -70,8 +70,8 @@ module.exports = (server) => {
     })
 
     // chat
-    socket.on("message", ({ message, room }) => {
-      io.to(room).emit('message', { message: message, socketId: socket.id });
+    socket.on("message", ({ message, room, log = false }) => {
+      io.to(room).emit('message', { message: message, socketId: socket.id, log: log });
     })
 
     // creates a new room. 
@@ -122,6 +122,10 @@ module.exports = (server) => {
       socket.emit("you are", users[getUserIndex(socket.id)]);
     })
 
+    socket.on("set map", ({ roomname, map }) => {
+      io.to(roomname).emit("set map", map);
+    })
+
     // Game methods
 
     socket.on("set regions", ({ roomname, regions }) => {
@@ -134,6 +138,10 @@ module.exports = (server) => {
 
     socket.on("set finished", ({ roomname, isFinished }) => {
       io.to(roomname).emit("set finished", isFinished);
+    })
+
+    socket.on("set dist finished", ({ roomname, isDistFinished }) => {
+      io.to(roomname).emit("set dist finished", isDistFinished);
     })
 
     socket.on("set turn", ({ roomname, turn }) => {
