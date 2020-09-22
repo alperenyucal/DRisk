@@ -67,7 +67,7 @@ export default ({ io, socket }) => {
       <Dialog
         isOpen={usernameDialogIsOpen}
         className="bp3-dark">
-        {/* if user submitted username starts to check if valid and returns error message */}
+        {/* when user submits a username, checks validity and returns an error message if not valid */}
         {showUsernameError ? <Callout intent="warning">Please enter a valid username</Callout> : null}
         <FormGroup
           style={{ margin: "10px 40px 0 40px" }}

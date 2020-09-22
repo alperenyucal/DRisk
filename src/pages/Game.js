@@ -17,7 +17,6 @@ const STAGES = {
 
 export default ({ user, room, map, socket }) => {
 
-
   // Region stuff
   let [regions, setRegions] = useState(map.regions.map(region => Object.assign(region, {
     soldierCount: 0,
@@ -43,7 +42,6 @@ export default ({ user, room, map, socket }) => {
   let [isDistFinished, setDistFinished] = useState(false);
   let [isStarted, setStarted] = useState(false);
   let [stage, setStage] = useState(isMyturn() ? STAGES.DISTRIBUTION : null);
-
 
   let [showAttackPlacement, setAttackPlacement] = useState(false);
   let [lost, setLost] = useState(false);
@@ -123,7 +121,7 @@ export default ({ user, room, map, socket }) => {
     });
   }
 
-  let handleRegionClick = (region) => {
+  const handleRegionClick = (region) => {
     if (isMyturn()) {
       switch (stage) {
         case STAGES.DISTRIBUTION:
@@ -161,58 +159,50 @@ export default ({ user, room, map, socket }) => {
     }
   }
 
-  useEffect(() => {
+  // events
+  socket.on("set regions", (rgns) => { setRegions(rgns) });
+  socket.on("set started", (strd) => { setStarted(strd) });
+  socket.on("set dist finished", (fnsd) => { setDistFinished(fnsd) });
+  socket.on("set finished", (fnsd) => { setIsFinished(fnsd) });
+  socket.on("set turn", (trn) => {
+    if (!turnStarted) {
+      setTurn(trn);
+      turnStarted = true;
+      if (trn.socketId == user.socketId) { // is my turn?
 
-    try {
-      // events
-      socket.on("set regions", (rgns) => { setRegions(rgns) });
-      socket.on("set started", (strd) => { setStarted(strd) });
-      socket.on("set dist finished", (fnsd) => { setDistFinished(fnsd) });
-      socket.on("set finished", (fnsd) => { setIsFinished(fnsd) });
-      socket.on("set turn", (trn) => {
-        if (!turnStarted) {
-          setTurn(trn);
-          turnStarted = true;
-          if (trn.socketId == user.socketId) { // is my turn?
-
-            if (users.length == 1) {
-              setIsFinished(true);
-              socket.close();
-            }
-
-            // you lost
-            /*if (regions.filter(rg => rg.occupiedById == user.socketId).length == 0) {
-              let temp = [...users];
-              let i = temp.findIndex(usr => usr.socketId == user.socketId);
-              temp.splice(i, 1);
-              endTurn();
-              socket.emit("set users", { roomname: room.name, users: temp });
-              socket.close();
-              setLost(true);
-            };*/
-
-            setStage(isDistFinished ? STAGES.PLACEMENT : STAGES.DISTRIBUTION);
-            if (isDistFinished) {
-              let sldrs = Math.floor(regions.filter(rg => rg.occupiedById == user.socketId).length / 3);
-              if (sldrs < 3) sldrs = 3;
-              let temp = [...users];
-              temp.find(usr => usr.socketId == user.socketId).soldiersToPlace = sldrs;
-              socket.emit("set users", { roomname: room.name, users: temp });
-            }
-          }
-          else
-            setStage(null);
+        if (users.length == 1) {
+          setIsFinished(true);
+          socket.close();
         }
 
-      });
-      socket.on("set continents", (cntnts) => { setContinents(cntnts) });
-      socket.on("set users", (usrs) => { setUsers(usrs) });
+        // you lost
+        /*if (regions.filter(rg => rg.occupiedById == user.socketId).length == 0 && stage !== STAGES.DISTRIBUTION) {
+          let temp = [...users];
+          let i = temp.findIndex(usr => usr.socketId == user.socketId);
+          temp.splice(i, 1);
+          endTurn();
+          socket.emit("set users", { roomname: room.name, users: temp });
+          socket.close();
+          setLost(true);
+        };*/
 
+        setStage(isDistFinished ? STAGES.PLACEMENT : STAGES.DISTRIBUTION);
+        if (isDistFinished) {
+          let sldrs = Math.floor(regions.filter(rg => rg.occupiedById == user.socketId).length / 3);
+          if (sldrs < 3) sldrs = 3;
+          let temp = [...users];
+          temp.find(usr => usr.socketId == user.socketId).soldiersToPlace = sldrs;
+          socket.emit("set users", { roomname: room.name, users: temp });
+        }
+      }
+      else
+        setStage(null);
     }
-    catch (error) {
-      console.error(error);
-    }
-  })
+
+  });
+  socket.on("set continents", (cntnts) => { setContinents(cntnts) });
+  socket.on("set users", (usrs) => { setUsers(usrs) });
+
 
   const DistUI = () => (
     <div>

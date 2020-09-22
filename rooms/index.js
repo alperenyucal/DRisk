@@ -4,20 +4,19 @@ module.exports = (server) => {
 
   // array of rooms
   let rooms = [];
+  // array of users. the array stores users in {socketId, username} format.
+  let users = [];
 
   // checks if there are users in the room. if no user left then removes room. 
-  let checkRooms = () => {
+  function checkRooms() {
     rooms.map((room, i) => {
       if (room.getUserCount() == 0)
         rooms.splice(i, 1)
     })
   }
 
-  // array of users. the array stores users in {socketId, username} format.
-  let users = [];
-
   // finds the user index using socketId.
-  let getUserIndex = (socketId) => users.findIndex(user => user.socketId == socketId)
+  const getUserIndex = (socketId) => users.findIndex(user => user.socketId == socketId)
 
 
   // Room class
@@ -45,7 +44,6 @@ module.exports = (server) => {
         users: this.getUsers()
       }
     };
-
   }
 
 
