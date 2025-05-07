@@ -16,6 +16,10 @@
     ],
     "routes": [
         {
+            "src": "/js/bundle.js",
+            "dest": "/dist/js/bundle.js"
+        },
+        {
             "src": "/(.*)",
             "dest": "/server.js"
         }
