@@ -11,7 +11,7 @@
         },
         {
             "src": "server.js",
-            "use": "@vercel/nodejs"
+            "use": "@vercel/node"
         }
     ],
     "routes": [
