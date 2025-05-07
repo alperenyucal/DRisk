@@ -16,8 +16,8 @@
     ],
     "routes": [
         {
-            "src": "/js/bundle.js",
-            "dest": "/dist/js/bundle.js"
+            "src": "/static/(.*)",
+            "dest": "/dist/$1"
         },
         {
             "src": "/(.*)",
